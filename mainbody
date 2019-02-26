@@ -1,0 +1,136 @@
+//贴出业务层接口及实现类
+public interface EmployeeService { 
+    void save(Employee employee);
+    void update(Employee employee);
+}
+public class EmployeeServiceImpl implements EmployeeService {
+    @Override
+    public void save(Employee employee) {
+        System.out.println("employeeService保存操作");
+    }
+    @Override
+    public void update(Employee employee) {
+        System.out.println("employeeService更新操作");
+    }
+}
+//实体类
+@Setter
+@Getter
+@ToString
+public class Employee {
+    private String name;
+    private String password;
+}
+//简单写一个事务处理工具类
+public class TransactionManager {
+    public void begin() {
+        System.out.println("开启事务。。。");
+    }
+    public void commit() {
+        System.out.println("提交事务。。。");
+    }
+    public void rollback() {
+        System.out.println("回滚。。。");
+    }
+}
+//进行逻辑处理的handler及实现类
+public interface IHandler {
+    /**
+     * @param method 真实调用的方法的引用
+     * @param args   真实调用方法需要传入的参数
+     */
+    public void invoke(Method method,Object[] args);
+}
+public class TxHandler implements IHandler {
+    private TransactionManager tx;
+    private EmployeeService emp = new EmployeeServiceImpl();
+    @Override
+    public void invoke(Method method, Object[] args) {
+        try{
+            tx = new TransactionManager();
+            String methodName = method.getName();
+            tx.begin();
+            method.invoke(emp,args);
+            tx.commit();
+            System.out.println(methodName+"方法执行成功...");
+        }catch (Exception e){
+            e.printStackTrace();
+            tx.rollback();
+        }
+    }
+}
+//贴上代理类
+blic class EmployeeStaticProxy implements EmployeeService {
+    private IHandler h;
+    public EmployeeStaticProxy(IHandler h) {
+        this.h=h;
+    }
+    @Override
+    public void save(Employee employee) {
+        //所有的业务逻辑交给handler处理
+        try {
+            final Class<?> clazz = Class.forName("com.xuexi.static_proxy.service.EmployeeService");
+            Method method = clazz.getDeclaredMethod("save", Employee.class);
+            h.invoke(method,new Object[]{employee});
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    @Override
+    public void update(Employee employee) {
+        //所有的业务逻辑交给handler处理
+        try {
+            final Class<?> clazz = Class.forName("com.xuexi.static_proxy.service.EmployeeService");
+            Method method = clazz.getDeclaredMethod("update", Employee.class);
+            h.invoke(method,new Object[]{employee});
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+//测试
+public class ProxyTest {
+    /**
+     * 测试保存方法
+     */
+    @Test
+    public void test_save() {
+        IHandler h = new TxHandler();
+        EmployeeStaticProxy proxy = new EmployeeStaticProxy(h);
+        Employee e = new Employee();
+        proxy.save(e);
+    }
+    /**
+     * 测试更新方法
+     */
+    @Test
+    public void test_update() {
+        IHandler h = new TxHandler();
+        EmployeeStaticProxy proxy = new EmployeeStaticProxy(h);
+        Employee e = new Employee();
+        proxy.update(e);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
